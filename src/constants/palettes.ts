@@ -32,3 +32,5 @@ export const designPalettePresets = {
     indexStrokeWidth: 2.4,
   },
 } as const satisfies Record<string, Partial<DesignSettings>>;
+
+export type PalettePresetName = keyof typeof designPalettePresets;

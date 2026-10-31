@@ -1,9 +1,9 @@
-import { getFault } from '../constants/faults';
+import { getFault, type FaultCode } from '../constants/faults';
 import { TerrainLoadError } from '../terrain-load-error';
 
 /** A failure to show in a FaultCard; `message` is the full, actionable explanation. */
 export interface StudioFault {
-  code: string;
+  code: FaultCode;
   title: string;
   isRetryable: boolean;
   message: string;

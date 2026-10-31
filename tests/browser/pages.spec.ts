@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { appUrl, download, enter3D, section, serveStudio } from './studio-fixture';
+import { appUrl, download, enter3D, section, serveHostedSite, serveStudio } from './studio-fixture';
+
+// Software-rendered 3D makes CI boot the studio slowly, and a reload boots it again.
+const appBootTimeoutMs = 60_000;
 
 test.use({ launchOptions: { args: ['--enable-unsafe-swiftshader'] } });
 
@@ -90,17 +93,23 @@ test('analytics loads only on the hosted site and never sees the design-link que
   await page.route('https://www.googletagmanager.com/**', (route) =>
     route.fulfill({ body: '', contentType: 'text/javascript' }),
   );
-  await page.route('https://landcu.be/**', async (route) => {
-    const filename = new URL(route.request().url()).pathname.slice(1) || 'index.html';
-
-    await route.fulfill({
-      body: await readFile(resolve('dist', filename)),
-      contentType: filename.endsWith('.js') ? 'text/javascript' : 'text/html',
-    });
+  await serveHostedSite(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('landcube-analytics-consent', 'granted');
   });
   await page.goto('https://landcu.be/?v=1&seed=123');
   await page.getByRole('button', { name: 'New landscape' }).click();
   await expect(page).not.toHaveURL(/seed=123/);
+  await page.getByRole('button', { name: 'Copy style link' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Array.from((window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer).some(
+          (entry) => Array.from(entry)[1] === 'share_link',
+        ),
+      ),
+    )
+    .toBe(true);
   const dataLayer = JSON.stringify(
     await page.evaluate(() =>
       Array.from((window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer, (entry) =>
@@ -112,4 +121,65 @@ test('analytics loads only on the hosted site and never sees the design-link que
   expect(dataLayer).toContain('G-09DGBRV9NB');
   expect(dataLayer).toContain('"page_location":"https://landcu.be/"');
   expect(dataLayer).not.toContain('seed=123');
+});
+
+test('analytics asks on the hosted site, loads nothing until allowed, and remembers the choice', async ({
+  page,
+}) => {
+  const tagRequests: string[] = [];
+
+  await page.route('https://www.googletagmanager.com/**', (route) =>
+    route.fulfill({ body: '', contentType: 'text/javascript' }),
+  );
+  await serveHostedSite(page);
+  page.on('request', (request) => {
+    if (request.url().includes('googletagmanager.com')) {
+      tagRequests.push(request.url());
+    }
+  });
+
+  await page.goto('https://landcu.be/');
+  const dialog = page.getByRole('alertdialog', { name: 'Usage analytics' });
+
+  await expect(dialog).toBeVisible();
+  expect(tagRequests).toEqual([]);
+
+  await expect(dialog.getByRole('button', { name: 'No thanks' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: 'Allow analytics' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: 'No thanks' })).toBeFocused();
+
+  await dialog.getByRole('button', { name: 'Allow analytics' }).click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => tagRequests.length).toBeGreaterThan(0);
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Copy style link' })).toBeVisible({
+    timeout: appBootTimeoutMs,
+  });
+  await expect(dialog).toBeHidden();
+});
+
+test('declining analytics loads no tag and is remembered', async ({ page }) => {
+  const tagRequests: string[] = [];
+
+  await serveHostedSite(page);
+  page.on('request', (request) => {
+    if (request.url().includes('googletagmanager.com')) {
+      tagRequests.push(request.url());
+    }
+  });
+
+  await page.goto('https://landcu.be/');
+  await page
+    .getByRole('alertdialog', { name: 'Usage analytics' })
+    .getByRole('button', { name: 'No thanks' })
+    .click();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Copy style link' })).toBeVisible({
+    timeout: appBootTimeoutMs,
+  });
+  await expect(page.getByRole('alertdialog', { name: 'Usage analytics' })).toBeHidden();
+  expect(tagRequests).toEqual([]);
 });

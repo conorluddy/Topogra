@@ -1,0 +1,22 @@
+/* Analytics consent: the target-lock card's header and identity, then body copy and two equal actions. */
+.lc-consent-card {
+  width: min(320px, calc(100vw - 2 * var(--lc-s-6)));
+}
+
+.lc-consent-card__body {
+  margin: 0;
+  padding: var(--lc-s-6) var(--lc-s-7);
+  border-top: 1px solid var(--lc-line-subtle);
+  color: var(--lc-text-secondary);
+  font-family: var(--lc-font-sans);
+  font-size: var(--lc-fs-hint);
+  line-height: 1.5;
+}
+
+.lc-consent-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--lc-s-4);
+  padding: var(--lc-s-5) var(--lc-s-7) var(--lc-s-7);
+  border-top: 1px solid var(--lc-line-subtle);
+}

@@ -24,7 +24,7 @@ export function PresetsPage({
     designPalettePresets[name].lineColor === state.design.lineColor;
 
   const apply = (name: PaletteName): void => {
-    c.design(designPalettePresets[name]);
+    c.applyPalettePreset(name);
   };
 
   return (

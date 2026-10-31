@@ -1,4 +1,5 @@
 /** Route actions shared by the Route group and the command palette. */
+import { track } from '../analytics';
 import { downloadExport } from '../export/image-export';
 import { getRouteGpxFilename, serializeRouteGpx } from '../gpx-export';
 import { isRouteComplete } from './route-editing';
@@ -31,6 +32,10 @@ export function exportRouteGpx(controller: StudioController, state: StudioState)
       blob: new Blob([xml], { type: 'application/gpx+xml' }),
       filename: getRouteGpxFilename(route.active),
     });
+
+    if (downloaded.ok) {
+      track('route_export', {});
+    }
 
     controller.notify(downloaded.ok ? 'GPX download started.' : downloaded.error.message);
   } catch (failure) {

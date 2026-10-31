@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { track } from '../../analytics';
 import { getDesignUrl } from '../../design-settings';
 import {
   addSavedDesign,
@@ -57,7 +58,7 @@ export function LibraryPage({
     setNotice(result.ok ? null : { kind: 'fault', text: result.error.message });
   }, [isActive, storage]);
 
-  const persist = (next: SavedDesign[], successText?: string): void => {
+  const persist = (next: SavedDesign[], successText?: string): boolean => {
     const result = writeSavedDesigns(storage, next);
 
     setDesigns(next);
@@ -68,12 +69,16 @@ export function LibraryPage({
           : { kind: 'ok', text: successText }
         : { kind: 'fault', text: result.error.message },
     );
+
+    return result.ok;
   };
 
   const saveCurrent = (): void => {
     const saved = createSavedDesign(state, renderer);
 
-    persist(addSavedDesign(designs, saved), `Saved ${saved.name}.`);
+    if (persist(addSavedDesign(designs, saved), `Saved ${saved.name}.`)) {
+      track('design_save', {});
+    }
   };
 
   const open = (design: SavedDesign): void => {

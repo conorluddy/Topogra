@@ -27,15 +27,32 @@ export async function serveStudio(page: Page, basePath = ''): Promise<void> {
 
     await route.fulfill({
       body: await readFile(resolve('dist', filename)),
-      contentType: filename.endsWith('.js')
-        ? 'text/javascript'
-        : filename.endsWith('.css')
-          ? 'text/css'
-          : filename.endsWith('.png')
-            ? 'image/png'
-            : 'text/html',
+      contentType: getContentType(filename),
     });
   });
+}
+
+/** Serves the built site as the hosted origin, so hostname-gated behaviour such as analytics runs. */
+export async function serveHostedSite(page: Page): Promise<void> {
+  await page.route('https://landcu.be/**', async (route) => {
+    const filename = new URL(route.request().url()).pathname.slice(1) || 'index.html';
+
+    await route.fulfill({
+      body: await readFile(resolve('dist', filename)),
+      contentType: getContentType(filename),
+    });
+  });
+}
+
+/** Stylesheets served as HTML are ignored, which leaves the page unstyled and its layout shifting. */
+function getContentType(filename: string): string {
+  return filename.endsWith('.js')
+    ? 'text/javascript'
+    : filename.endsWith('.css')
+      ? 'text/css'
+      : filename.endsWith('.png')
+        ? 'image/png'
+        : 'text/html';
 }
 
 export async function section(page: Page, name: string): Promise<void> {

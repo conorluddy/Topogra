@@ -16,9 +16,40 @@ The default appearance is a charcoal background with subtle, lighter contour lin
 - A new random seed on every page load.
 - Smooth procedural terrain and mathematically derived contour lines.
 - Crisp rendering at different viewport sizes and pixel densities.
-- No accounts, backend, or runtime network dependencies beyond public elevation tiles and hosted-site analytics.
+- No accounts, backend, or runtime network dependencies beyond public elevation tiles and consent-gated hosted-site analytics.
 - The hosted site MUST NOT send design-link query strings to Google Analytics. Google also collects standard browser details (IP address, user agent, referrer, screen size).
 - Where the origin is not `landcu.be`, the editor MUST NOT request `googletagmanager.com`.
+
+## Analytics consent
+
+REQ-1: Where the origin is `landcu.be`, the editor MUST NOT request `googletagmanager.com` before the visitor selects "Allow analytics".
+
+Rationale: visitors decide before any Google request.
+
+REQ-2: When the visitor selects "No thanks", the editor MUST NOT request `googletagmanager.com` on later loads in that browser.
+
+Rationale: a declined choice stays declined.
+
+REQ-3: When the visitor selects "Allow analytics", the editor MUST load the tag on later loads without showing the dialog.
+
+Rationale: the choice is asked once.
+
+```gherkin
+REQ-1: Given a first visit to https://landcu.be/ with no stored choice
+  When the page loads
+  Then the analytics dialog is shown
+  And no request to googletagmanager.com has been made
+
+REQ-2: Given the visitor selected "No thanks"
+  When the page is reloaded
+  Then the dialog is not shown
+  And no request to googletagmanager.com is made
+
+REQ-3: Given the visitor selected "Allow analytics"
+  When the page is reloaded
+  Then the dialog is not shown
+  And the tag is requested from googletagmanager.com
+```
 
 Controls, export buttons, animation, real geographic data, 3D previews, and website-content previews are outside this version.
 

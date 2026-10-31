@@ -44,6 +44,7 @@ import { applyTheme, currentTheme, readTheme, subscribeToTheme } from './studio/
 import './ui/ui.css';
 import './studio/studio.css';
 import './studio/studio-surfaces.css';
+import './studio/analytics-consent-dialog.css';
 import './studio/studio-phone.css';
 import { designChangePriority, versionOneDesignDefaults } from './constants/design';
 import { engineConfiguration } from './constants/engine';
@@ -72,6 +73,7 @@ import {
 } from './design-sharing';
 import { createOutputRenderer } from './export/image-export';
 import { calculateContourElevations, getTerrainTerraceLevels } from './landscape-composition';
+import { startAnalyticsIfAllowed } from './analytics-consent';
 import { logOperationError } from './operation-logging';
 import { renderContoursIntoSvg } from './svg-rendering';
 import { createTerrainSampler, sampleTerrain } from './terrain-generation';
@@ -102,6 +104,8 @@ try {
     },
   };
 }
+
+startAnalyticsIfAllowed(location.hostname, browserLocalStorage);
 
 const opensDesignLink = hasDesignParameters(new URLSearchParams(location.search));
 const storedStyleResult = readDesignStyle(browserLocalStorage);

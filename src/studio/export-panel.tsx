@@ -5,6 +5,7 @@ import { terrainStillScales, type TerrainStillScale } from '../export/still-expo
 import type { PanelProps } from './controller';
 import type { OutputRenderer } from '../types/export';
 import type { FramePartId } from '../types/frame';
+import { track } from '../analytics';
 import { createExportFile, createExportPreviewSvg, downloadExport } from '../export/image-export';
 import { maximumOutputDimensionPixels } from '../constants/design';
 import { clampOutputDimensionPixels } from '../design-settings';
@@ -120,6 +121,7 @@ export function ExportPanel({
       if (!downloaded.ok) {
         setError(downloaded.error.message);
       } else {
+        track('export', { format: settings.format });
         c.notify('Download started.');
         setSuccessTitle(`${settings.format.toUpperCase()} downloaded`);
       }

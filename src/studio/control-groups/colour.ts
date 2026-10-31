@@ -76,7 +76,7 @@ function buildPaletteGroup(
         })),
         isPressedComputed: (option) => isPaletteApplied(state, option.value),
         onChange: (name) => {
-          controller.design(designPalettePresets[name]);
+          controller.applyPalettePreset(name);
         },
       }),
       buttonRow('palette-random', {

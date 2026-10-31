@@ -50,27 +50,6 @@
         "inLanguage": "en"
       }
     </script>
-    <!-- Google tag (gtag.js): hosted site only, so dev servers, forks and self-hosts stay silent -->
-    <script>
-      const analyticsHostname = 'landcu.be';
-
-      if (location.hostname === analyticsHostname) {
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-          dataLayer.push(arguments);
-        }
-        gtag('js', new Date());
-        // Set on config so every event, not just the page view, omits the design-link query.
-        gtag('config', 'G-09DGBRV9NB', {
-          page_location: location.origin + location.pathname,
-        });
-
-        const tag = document.createElement('script');
-        tag.async = true;
-        tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-09DGBRV9NB';
-        document.head.append(tag);
-      }
-    </script>
   </head>
   <body>
     <noscript>

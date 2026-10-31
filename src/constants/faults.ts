@@ -37,8 +37,11 @@ export type StudioFaultKind =
   | 'webglContextLost'
   | 'previewDecodeFailed';
 
+/** A fault's display code, e.g. `E-201`. */
+export type FaultCode = `E-${number}`;
+
 export interface FaultDescription {
-  code: string;
+  code: FaultCode;
   title: string;
   isRetryable: boolean;
 }
@@ -68,6 +71,6 @@ export function getFault(kind: OperationErrorCode | StudioFaultKind): FaultDescr
   return faultCodes[kind];
 }
 
-function describe(code: string, title: string, isRetryable: boolean): FaultDescription {
+function describe(code: FaultCode, title: string, isRetryable: boolean): FaultDescription {
   return { code, title, isRetryable };
 }

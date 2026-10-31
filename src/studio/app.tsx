@@ -15,7 +15,7 @@ import {
 import { RouteProfileHost } from './route-profile-host';
 import { hasRouteProfile } from './active-route-analysis';
 import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { InspectorPanel } from '../ui/inspector-panel';
 import {
   getActiveSection,
@@ -46,6 +46,7 @@ import { StudioFooter } from './studio-footer';
 import { StudioMapControls, StudioSheet } from './studio-sheet';
 import { ViewportStates } from './viewport-states';
 import { StudioHud } from './studio-hud';
+import { AnalyticsConsentDialog, useAnalyticsConsentPrompt } from './analytics-consent-dialog';
 import { CompareHost } from './compare-host';
 import type { CompareSceneStore } from './compare-scene';
 import { StudioToolBar } from './studio-tools';
@@ -201,6 +202,7 @@ function Studio({
   const systemLink = useRef<HTMLButtonElement>(null);
   const active = getActiveSection(state);
   const isPhoneViewport = useSyncExternalStore(subscribeToPhoneViewport, readIsPhoneViewport);
+  const analyticsConsent = useAnalyticsConsentPrompt();
   const [modeFlip] = useState(() => createStudioModeFlip(c));
   const flip = useSyncExternalStore(modeFlip.subscribe, modeFlip.getSnapshot);
   const isSystemShown = !isPhoneViewport && flip.shownMode === 'system';
@@ -364,6 +366,7 @@ function Studio({
   return (
     <div
       className="studio-shell"
+      inert={analyticsConsent.isAsking}
       data-route-profile={
         !isPhoneViewport && routeProfile !== undefined
           ? isRouteProfileCollapsed
@@ -390,6 +393,8 @@ function Studio({
         inert={isSystemShown || state.workspace.mode === 'system'}
       />
       <div className="studio-ground" aria-hidden="true" />
+      {analyticsConsent.isAsking &&
+        createPortal(<AnalyticsConsentDialog onChoose={analyticsConsent.choose} />, document.body)}
       {flip.isBusy && <div key={flip.sweepCount} className="studio-scan" aria-hidden="true" />}
       {isSystemMounted && (
         <Activity mode={isSystemShown ? 'visible' : 'hidden'}>
