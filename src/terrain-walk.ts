@@ -18,6 +18,19 @@ interface TerrainWalkOptions {
   getGroundHeight: (x: number, z: number) => number | undefined;
   onFrame: () => void;
   onStop: () => void;
+  /** An optional toy driven by mouse, Q and E while walking. */
+  toy?: WalkToy;
+}
+
+/** A walk-only plaything; see `throwables/throwables.ts`. */
+export interface WalkToy {
+  start(scale: WalkScale): void;
+  charge(): void;
+  release(): void;
+  toggle(): void;
+  recall(): void;
+  step(elapsedSeconds: number): void;
+  stop(): void;
 }
 
 const eyeHeightMeters = 1.7;
@@ -76,7 +89,7 @@ export function getWalkScale(metersPerUnit: number): WalkScale {
 }
 
 export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
-  const { camera, canvas } = options;
+  const { camera, canvas, toy } = options;
   const heldKeys = new Set<string>();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
   let frame = 0;
@@ -94,7 +107,11 @@ export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
   hint.setAttribute('aria-live', 'polite');
 
   const updateHint = () => {
-    hint.textContent = `WASD move · Shift sprint · Space jump · I invert look (${isLookInverted ? 'on' : 'off'}) · Esc exit`;
+    const toyHint = toy
+      ? ' · Tap: ball on hurl · Hold: toss, again to strike · Q hurl/boomerang · E recall'
+      : '';
+
+    hint.textContent = `WASD move · Shift sprint · Space jump${toyHint} · I invert look (${isLookInverted ? 'on' : 'off'}) · Esc exit`;
   };
 
   const onMouseMove = (event: MouseEvent) => {
@@ -122,6 +139,10 @@ export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
       stop();
     } else if (event.code === 'Space' && !jump && !landing) {
       jump = { height: 0, speedPerSecond: scale.jumpSpeedPerSecond };
+    } else if (event.code === 'KeyQ' && !event.repeat) {
+      toy?.toggle();
+    } else if (event.code === 'KeyE' && !event.repeat) {
+      toy?.recall();
     } else if (event.code === 'KeyI' && !event.repeat) {
       isLookInverted = !isLookInverted;
       updateHint();
@@ -136,6 +157,18 @@ export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
 
   const onKeyUp = (event: KeyboardEvent) => {
     heldKeys.delete(event.code);
+  };
+
+  const onMouseDown = (event: MouseEvent) => {
+    if (event.button === 0 && !landing && document.pointerLockElement === canvas) {
+      toy?.charge();
+    }
+  };
+
+  const onMouseUp = (event: MouseEvent) => {
+    if (event.button === 0) {
+      toy?.release();
+    }
   };
 
   const onPointerLockChange = () => {
@@ -157,6 +190,7 @@ export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
       jump = advanceJump(jump, elapsedSeconds, scale.gravityPerSecondSquared);
       // Standing still, the walker rides the ground as a new landscape morphs underneath.
       followGround(camera, options.getGroundHeight, jump?.height ?? 0, scale.eyeHeight);
+      toy?.step(elapsedSeconds);
     }
 
     options.onFrame();
@@ -176,9 +210,12 @@ export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
     updateHint();
     canvas.parentElement?.append(hint);
     landing = planLanding(camera, dropPoint, options.getGroundHeight, scale);
+    toy?.start(scale);
     // Refused without a user gesture (scripted input); keys still walk, only mouse look is lost.
     canvas.requestPointerLock().catch(() => undefined);
     document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('keydown', onKeyDown, true);
     document.addEventListener('keyup', onKeyUp, true);
     document.addEventListener('pointerlockchange', onPointerLockChange);
@@ -198,6 +235,9 @@ export function createTerrainWalk(options: TerrainWalkOptions): TerrainWalk {
     jump = undefined;
     hint.remove();
     document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mousedown', onMouseDown);
+    document.removeEventListener('mouseup', onMouseUp);
+    toy?.stop();
     document.removeEventListener('keydown', onKeyDown, true);
     document.removeEventListener('keyup', onKeyUp, true);
     document.removeEventListener('pointerlockchange', onPointerLockChange);

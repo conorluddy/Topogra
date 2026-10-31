@@ -86,6 +86,7 @@ import {
   type CameraShotPlayback,
 } from './terrain-camera-shots';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createTerrainThrowables } from './throwables/throwables';
 import { createTerrainWalk } from './terrain-walk';
 import { createTerrainTransitionAudio } from './terrain-transition-audio';
 import { createTerrainPostProcessing, type TerrainPostProcessing } from './terrain-post-processing';
@@ -857,14 +858,19 @@ export function createTerrain3d(
   // Spike: first person drops in at a terrain point; Esc returns to the saved orbit pose.
   const downRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0));
   let orbitPose: { position: THREE.Vector3; target: THREE.Vector3 } | undefined;
+
+  const getGroundHeight = (x: number, z: number) => {
+    downRay.ray.origin.set(x, 50, z);
+
+    return downRay.intersectObject(surface, false)[0]?.point.y;
+  };
+
+  const throwables = createTerrainThrowables({ scene, camera: perspectiveCamera, getGroundHeight });
   const walk = createTerrainWalk({
     camera: perspectiveCamera,
     canvas: renderer.domElement,
-    getGroundHeight(x, z) {
-      downRay.ray.origin.set(x, 50, z);
-
-      return downRay.intersectObject(surface, false)[0]?.point.y;
-    },
+    getGroundHeight,
+    toy: throwables,
     onFrame: draw,
     onStop() {
       if (orbitPose) {
